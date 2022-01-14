@@ -357,6 +357,7 @@ dependencies = [
  "hyper",
  "hyper-tls",
  "log",
+ "regex",
  "serde",
  "serde_json",
  "tokio",

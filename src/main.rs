@@ -6,7 +6,6 @@ mod translate;
 use log::{error, info};
 use std::sync::{Arc, RwLock};
 
-use futures;
 use std::env;
 use std::net::{SocketAddr, SocketAddrV4};
 

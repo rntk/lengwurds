@@ -1,6 +1,3 @@
-use std::thread::sleep;
-use std::time::Duration;
-
 use crate::telegram::client;
 
 use log::{error, info};

@@ -1,14 +1,23 @@
 use std::error;
+use std::fmt;
 use std::fs;
 use std::io;
+
+use crate::translate;
 
 use serde::{Deserialize, Serialize};
 use serde_json;
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
 pub struct Word {
-    word: String,
-    lang: String,
+    pub word: String,
+    pub lang: translate::Lang,
+}
+
+impl fmt::Display for Word {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {}", self.word, self.lang)
+    }
 }
 
 #[derive(Deserialize, Serialize, Clone)]
