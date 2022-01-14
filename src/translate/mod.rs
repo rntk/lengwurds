@@ -1,3 +1,6 @@
+pub mod google;
+
+use std::error::Error;
 use std::fmt;
 use std::str::FromStr;
 
@@ -19,7 +22,7 @@ impl fmt::Display for LangParseError {
     }
 }
 
-const SUPPORTED_LANGS: [&str; 3] = ["ru", "en", "kz"];
+const SUPPORTED_LANGS: [&str; 3] = ["ru", "en", "kk"];
 
 impl FromStr for Lang {
     type Err = LangParseError;
@@ -45,14 +48,6 @@ impl fmt::Display for Lang {
     }
 }
 
-pub struct Translator {
-    token: String,
-}
-
-impl Translator {
-    pub fn new(token: &str) -> Translator {
-        Translator {
-            token: token.to_string(),
-        }
-    }
+pub trait Translate {
+    fn translate(&self, word: &str, from: Lang, to: Lang) -> Result<Vec<String>, Box<dyn Error>>;
 }

@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             panic!("Can't open DB {}", e);
         }
     };
-    let translator = Arc::new(RwLock::new(translate::Translator::new(
+    let translator = Arc::new(RwLock::new(translate::google::Client::new(
         translate_token.as_str(),
     )));
 

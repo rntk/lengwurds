@@ -4,14 +4,14 @@ pub mod front;
 use std::sync::{Arc, RwLock};
 
 use crate::storage::Storage;
-use crate::translate::Translator;
+use crate::translate::Translate;
 
 use hyper::{Body, Error, Method, Request, Response, StatusCode};
 
 pub async fn router(
     req: Request<Body>,
     _storage: Arc<RwLock<Storage>>,
-    _translator: Arc<RwLock<Translator>>,
+    _translator: Arc<RwLock<impl Translate>>,
 ) -> Result<Response<Body>, Error> {
     match (req.method(), req.uri().path()) {
         (&Method::GET, "/") => front::index(),
