@@ -34,7 +34,7 @@ impl FromStr for Lang {
         }
 
         Err(LangParseError {
-            description: "Unsupportet language".to_string(),
+            description: "Unsupported language".to_string(),
         })
     }
 }

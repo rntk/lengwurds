@@ -63,11 +63,12 @@ impl FromStr for Command {
                 })
             }
             "/dw" => {
-                let mut pt = "".to_string();
-                if parts.len() > 1 {
-                    pt = parts[1].to_string()
+                if parts.len() == 1 {
+                    return Err(CommandParseError {
+                        description: "No word".to_string(),
+                    });
                 }
-                return Ok(Command::DeleteWord(pt));
+                return Ok(Command::DeleteWord(parts[1].to_string()));
             }
             "/lw" => {
                 let mut pt = "".to_string();
@@ -77,12 +78,11 @@ impl FromStr for Command {
                 return Ok(Command::ListWords(pt));
             }
             "/l" => {
-                if parts.len() < 2 {
-                    return Err(CommandParseError {
-                        description: "Not enough data to add new word".to_string(),
-                    });
+                let mut l = "".to_string();
+                if parts.len() > 1 {
+                    l = parts[1].to_string();
                 }
-                return Ok(Command::AddLang(parts[1].parse()?));
+                return Ok(Command::AddLang(l.parse()?));
             }
             "/ll" => return Ok(Command::ListLangs),
             "/dl" => {
@@ -114,6 +114,12 @@ mod tests {
     fn parse_command() {
         let mut table: HashMap<String, Result<Command, CommandParseError>> = HashMap::new();
         table.insert(
+            "some text".to_string(),
+            Err(CommandParseError {
+                description: "Unknown command".to_string(),
+            }),
+        );
+        table.insert(
             "/w word en".to_string(),
             Ok(Command::AddWord(Word {
                 word: "word".to_string(),
@@ -123,12 +129,47 @@ mod tests {
             })),
         );
         table.insert(
+            "/w word en ru".to_string(),
+            Ok(Command::AddWord(Word {
+                word: "word".to_string(),
+                lang: Lang {
+                    lang: "en".to_string(),
+                },
+            })),
+        );
+        table.insert(
+            "/w word enn".to_string(),
+            Err(CommandParseError {
+                description: "Unsupported language".to_string(),
+            }),
+        );
+        table.insert(
+            "/w word".to_string(),
+            Err(CommandParseError {
+                description: "Not enough data to add new word".to_string(),
+            }),
+        );
+        table.insert(
             "/dw word".to_string(),
             Ok(Command::DeleteWord("word".to_string())),
+        );
+        table.insert(
+            "/dw word word1".to_string(),
+            Ok(Command::DeleteWord("word".to_string())),
+        );
+        table.insert(
+            "/dw".to_string(),
+            Err(CommandParseError {
+                description: "No word".to_string(),
+            }),
         );
         table.insert("/lw".to_string(), Ok(Command::ListWords("".to_string())));
         table.insert(
             "/lw wo".to_string(),
+            Ok(Command::ListWords("wo".to_string())),
+        );
+        table.insert(
+            "/lw wo w".to_string(),
             Ok(Command::ListWords("wo".to_string())),
         );
         table.insert(
@@ -138,10 +179,22 @@ mod tests {
             })),
         );
         table.insert(
+            "/l enn".to_string(),
+            Err(CommandParseError {
+                description: "Unsupported language".to_string(),
+            }),
+        );
+        table.insert(
             "/dl en".to_string(),
             Ok(Command::DeleteLang(Lang {
                 lang: "en".to_string(),
             })),
+        );
+        table.insert(
+            "/dl enn".to_string(),
+            Err(CommandParseError {
+                description: "Unsupported language".to_string(),
+            }),
         );
         table.insert("/ll".to_string(), Ok(Command::ListLangs));
         for (command, expect) in table.iter() {
