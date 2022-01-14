@@ -2,6 +2,7 @@ use std::error;
 
 use hyper;
 use hyper::body::HttpBody;
+use hyper_tls::HttpsConnector;
 use serde::{Deserialize, Serialize};
 
 const API_URL: &str = "https://api.telegram.org";
@@ -20,27 +21,27 @@ pub struct UpdatesResponse {
 
 #[derive(Deserialize, Serialize)]
 pub struct User {
-    id: i64,
-    username: String,
+    pub id: i64,
+    pub username: String,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct Update {
     update_id: i64,
-    message: Message,
+    pub message: Message,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct Chat {
-    id: i64,
+    pub id: i64,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct Message {
-    message_id: i64,
-    text: String,
-    from: User,
-    chat: Chat,
+    pub message_id: i64,
+    pub text: String,
+    pub from: User,
+    pub chat: Chat,
 }
 
 impl Client {
@@ -52,17 +53,22 @@ impl Client {
     }
 
     pub async fn get_updates(
-        self,
+        &mut self,
         long_poll_seconds: u32,
-    ) -> Result<UpdatesResponse, Box<dyn error::Error>> {
-        unimplemented!("yo");
+    ) -> Result<Vec<Update>, Box<dyn error::Error>> {
+        let updates = self.get_updates_(long_poll_seconds).await?;
+        let last = updates.result.len();
+        if last > 0 {
+            self.last_update = updates.result[last - 1].update_id
+        }
+
+        Ok(updates.result)
     }
 
     async fn get_updates_(
-        self,
+        &self,
         long_poll_seconds: u32,
     ) -> Result<UpdatesResponse, Box<dyn error::Error>> {
-        let client = hyper::Client::new();
         let mut timeout = "".to_string();
         if long_poll_seconds > 0 {
             timeout = format!("&timeout={}", long_poll_seconds);
@@ -73,9 +79,10 @@ impl Client {
             self.token,
             self.last_update + 1,
             timeout
-        )
-        .parse()?;
-        let mut resp = client.get(uri).await?;
+        );
+        let https = HttpsConnector::new();
+        let client = hyper::Client::builder().build::<_, hyper::Body>(https);
+        let mut resp = client.get(uri.parse()?).await?;
         let mut body: Vec<u8> = vec![];
         while let Some(chunk) = resp.body_mut().data().await {
             let bt = chunk?;
@@ -83,7 +90,6 @@ impl Client {
                 body.push(*b)
             }
         }
-
         let res: UpdatesResponse = serde_json::from_slice(body.as_slice())?;
 
         Ok(res)

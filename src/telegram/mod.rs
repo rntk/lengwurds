@@ -1,3 +1,3 @@
-mod client;
-mod commands;
-mod updates;
+pub mod client;
+pub mod commands;
+pub mod updates;
