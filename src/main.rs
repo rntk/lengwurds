@@ -32,10 +32,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             panic!("Can't open DB {}", e);
         }
     };
-    let user_words = Arc::new(UserWords::new(
+    let user_words = Arc::new(RwLock::new(UserWords::new(
         storage.clone(),
         translate::google::Client::new(translate_token.as_str()),
-    ));
+    )));
     let telegram_user_words = user_words.clone();
 
     std::thread::spawn(|| {

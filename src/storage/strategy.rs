@@ -8,7 +8,7 @@ pub trait UserUpdateStrategy {
 }
 
 pub struct DeleteWord {
-    pub word: Word,
+    pub word: String,
 }
 
 impl UserUpdateStrategy for DeleteWord {
@@ -16,7 +16,7 @@ impl UserUpdateStrategy for DeleteWord {
         let mut u = user.clone();
         let mut saved: Vec<Translate> = vec![];
         for tr in user.translates.iter() {
-            if tr.word == self.word {
+            if tr.word.word == self.word {
                 continue;
             }
             saved.push(tr.clone())
@@ -187,10 +187,7 @@ mod tests {
     #[test]
     fn del_word() {
         let strat = DeleteWord {
-            word: Word {
-                word: "word".to_string(),
-                lang: "en".parse().unwrap(),
-            },
+            word: "word".to_string(),
         };
         let mut test_u: Vec<User> = vec![];
         let mut expect_u: Vec<User> = vec![];

@@ -1,13 +1,16 @@
 pub mod api;
 pub mod front;
 
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use crate::UserWords;
 
 use hyper::{Body, Error, Method, Request, Response, StatusCode};
 
-pub async fn router(req: Request<Body>, _user_h: Arc<UserWords>) -> Result<Response<Body>, Error> {
+pub async fn router(
+    req: Request<Body>,
+    _user_h: Arc<RwLock<UserWords>>,
+) -> Result<Response<Body>, Error> {
     match (req.method(), req.uri().path()) {
         (&Method::GET, "/") => front::index(),
         (&Method::GET, "/static/front.js") => front::front_js(),

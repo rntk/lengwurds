@@ -74,9 +74,37 @@ impl UserWords {
         stor.upsert(user_id, strategy::AddTranslate { tran })
     }
 
-    pub fn delete_word(&mut self, user_id: i64, word: &Word) -> Result<(), Box<dyn error::Error>> {
+    pub fn delete_word(&mut self, user_id: i64, word: &str) -> Result<(), Box<dyn error::Error>> {
         let mut stor = self.storage.write().unwrap();
-        stor.upsert(user_id, strategy::DeleteWord { word: word.clone() })
+        stor.upsert(
+            user_id,
+            strategy::DeleteWord {
+                word: word.to_string(),
+            },
+        )
+    }
+
+    pub fn list_words(
+        &self,
+        user_id: i64,
+        pattern: &str,
+    ) -> Result<Vec<storage::Translate>, Box<dyn error::Error>> {
+        let stor = self.storage.read().unwrap();
+        match stor.get(user_id) {
+            Some(u) => {
+                let p = pattern.to_string().to_lowercase();
+                if p != "" {
+                    return Ok(u
+                        .translates
+                        .iter()
+                        .filter(|t| !t.word.word.contains(p.as_str()))
+                        .map(|t| t.clone())
+                        .collect());
+                }
+                return Ok(u.translates.to_vec());
+            }
+            None => Ok(vec![]),
+        }
     }
 
     pub fn add_lang(&mut self, user_id: i64, lang: &Lang) -> Result<(), Box<dyn error::Error>> {
@@ -87,5 +115,13 @@ impl UserWords {
     pub fn delete_lang(&mut self, user_id: i64, lang: &Lang) -> Result<(), Box<dyn error::Error>> {
         let mut stor = self.storage.write().unwrap();
         stor.upsert(user_id, strategy::DeleteLang { lang: lang.clone() })
+    }
+
+    pub fn list_langs(&self, user_id: i64) -> Result<Vec<Lang>, Box<dyn error::Error>> {
+        let stor = self.storage.read().unwrap();
+        match stor.get(user_id) {
+            Some(u) => Ok(u.langs.to_vec()),
+            None => Ok(vec![]),
+        }
     }
 }
