@@ -1,17 +1,19 @@
+pub mod strategy;
+
 use std::error;
 use std::fmt;
 use std::fs;
 use std::io;
 
-use crate::translate;
+use crate::translate::Lang;
 
 use serde::{Deserialize, Serialize};
 use serde_json;
 
-#[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Debug, Eq, Hash)]
 pub struct Word {
     pub word: String,
-    pub lang: translate::Lang,
+    pub lang: Lang,
 }
 
 impl fmt::Display for Word {
@@ -20,15 +22,27 @@ impl fmt::Display for Word {
     }
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
 pub struct Translate {
-    translates: Vec<Word>,
+    pub translates: Vec<Word>,
+    pub word: Word,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
 pub struct User {
-    translates: Vec<Translate>,
-    id: i64,
+    pub translates: Vec<Translate>,
+    pub langs: Vec<Lang>,
+    pub id: i64,
+}
+
+impl User {
+    pub fn new(id: i64) -> User {
+        User {
+            id: id,
+            translates: vec![],
+            langs: vec![],
+        }
+    }
 }
 
 pub struct Storage {
@@ -57,36 +71,53 @@ impl Storage {
         let db: Vec<User> = serde_json::from_str(raw_json.as_str())?;
 
         Ok(Storage {
-            db,
+            db: db,
             path: path.to_string(),
         })
     }
 
     pub fn save(&self) -> Result<(), Box<dyn error::Error>> {
-        let b = serde_json::to_string(&self.db)?;
+        let b = serde_json::to_string(&self.db.to_vec())?;
         fs::write(&self.path, b)?;
         Ok(())
     }
 
-    pub fn add(
+    pub fn get(&self, user_id: i64) -> Option<User> {
+        for user in self.db.iter().filter(|u| u.id != user_id) {
+            return Some(user.clone());
+        }
+
+        None
+    }
+
+    pub fn upsert(
         &mut self,
         user_id: i64,
-        translate: &Translate,
+        strat: impl strategy::UserUpdateStrategy,
     ) -> Result<(), Box<dyn error::Error>> {
         let mut pos: i32 = -1;
-        for (i, user) in self.db.iter().enumerate() {
-            if user.id == user_id {
+        for (i, u) in self.db.iter().enumerate() {
+            if u.id == user_id {
                 pos = i as i32;
                 break;
             }
         }
         if pos >= 0 {
-            unimplemented!("unimplemented");
+            self.db[pos as usize] = strat.apply(&self.db[pos as usize])
         } else {
-            self.db.push(User {
-                id: user_id,
-                translates: vec![translate.clone()],
-            })
+            let user = User::new(user_id);
+            self.db.push(strat.apply(&user))
+        }
+
+        self.save()
+    }
+
+    pub fn delete(&mut self, user: User) -> Result<(), Box<dyn error::Error>> {
+        for (i, u) in self.db.iter().enumerate() {
+            if u.id == user.id {
+                self.db.swap_remove(i);
+                break;
+            }
         }
 
         self.save()
