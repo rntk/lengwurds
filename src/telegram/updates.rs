@@ -1,9 +1,12 @@
+use std::sync::Arc;
+
 use crate::telegram::client;
+use crate::user::user::UserWords;
 
 use log::{error, info};
 use tokio::runtime::Builder;
 
-pub fn updates_fetching(token: String) {
+pub fn updates_processing(user_translator: Arc<UserWords>, token: String) {
     let mut cli = client::Client::new(token.as_str());
     let rt = Builder::new_current_thread().enable_all().build().unwrap();
     loop {
@@ -15,6 +18,7 @@ pub fn updates_fetching(token: String) {
             }
         };
         for update in updates {
+            //let cmd: commands::Command = update.
             process_update(&update)
         }
     }

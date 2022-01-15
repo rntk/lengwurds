@@ -2,12 +2,14 @@ mod api;
 mod storage;
 mod telegram;
 mod translate;
+mod user;
 
 use log::{error, info};
-use std::sync::{Arc, RwLock};
-
 use std::env;
 use std::net::{SocketAddr, SocketAddrV4};
+use std::sync::{Arc, RwLock};
+
+use user::user::UserWords;
 
 use env_logger;
 use hyper::service::{make_service_fn, service_fn};
@@ -30,20 +32,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             panic!("Can't open DB {}", e);
         }
     };
-    let translator = Arc::new(RwLock::new(translate::google::Client::new(
-        translate_token.as_str(),
-    )));
+    let user_words = Arc::new(UserWords::new(
+        storage.clone(),
+        translate::google::Client::new(translate_token.as_str()),
+    ));
+    let telegram_user_words = user_words.clone();
 
-    std::thread::spawn(|| telegram::updates::updates_fetching(telegram_token));
+    std::thread::spawn(|| {
+        telegram::updates::updates_processing(telegram_user_words, telegram_token)
+    });
 
     let make_svc = make_service_fn(move |_conn| {
-        let stor = storage.clone();
-        let tran = translator.clone();
-        async {
-            Ok::<_, hyper::Error>(service_fn(move |req| {
-                api::router(req, stor.clone(), tran.clone())
-            }))
-        }
+        let user_h = user_words.clone();
+        async { Ok::<_, hyper::Error>(service_fn(move |req| api::router(req, user_h.clone()))) }
     });
     let server = Server::bind(&SocketAddr::from(addr)).serve(make_svc);
     info!("Start server: {}", host);

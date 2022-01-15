@@ -4,9 +4,10 @@ use std::error::Error;
 use std::fmt;
 use std::str::FromStr;
 
+use crate::storage::Word;
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Debug, Eq, Hash)]
 pub struct Lang {
     pub lang: String,
 }
@@ -49,5 +50,11 @@ impl fmt::Display for Lang {
 }
 
 pub trait Translate {
-    fn translate(&self, word: &str, from: Lang, to: Lang) -> Result<Vec<String>, Box<dyn Error>>;
+    fn translate(&self, word: &Word, to: &Lang) -> Result<Vec<String>, Box<dyn Error>>;
+
+    fn translate_to_langs(
+        &self,
+        word: &Word,
+        langs: Vec<Lang>,
+    ) -> Result<Vec<Word>, Box<dyn Error>>;
 }

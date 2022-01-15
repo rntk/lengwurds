@@ -45,7 +45,7 @@ impl FromStr for Command {
         clear_s = re.replace_all(clear_s.as_str(), " ").to_string();
         let parts: Vec<&str> = clear_s.split(" ").collect();
 
-        if parts.len() == 0 {
+        if parts.is_empty() {
             return Err(CommandParseError {
                 description: "Command is empty".to_string(),
             });

@@ -1,4 +1,4 @@
-use crate::translate::{Lang, Translate};
+use crate::translate::{Lang, Translate, Word};
 use std::error::Error;
 
 use hyper;
@@ -51,14 +51,13 @@ impl Client {
 impl Client {
     pub async fn async_translate(
         &self,
-        word: &str,
-        from: Lang,
-        to: Lang,
+        word: &Word,
+        to: &Lang,
     ) -> Result<Vec<String>, Box<dyn Error>> {
         let q = Query {
-            q: word.to_string(),
+            q: word.word.to_string(),
             target: to.lang.to_string(),
-            source: from.lang.to_string(),
+            source: word.lang.lang.to_string(),
             key: self.token.to_string(),
         };
         let https = HttpsConnector::new();
@@ -93,16 +92,34 @@ impl Client {
 }
 
 impl Translate for Client {
-    fn translate(&self, word: &str, from: Lang, to: Lang) -> Result<Vec<String>, Box<dyn Error>> {
+    fn translate(&self, word: &Word, to: &Lang) -> Result<Vec<String>, Box<dyn Error>> {
         let rt = Builder::new_current_thread().enable_all().build().unwrap();
-        rt.block_on(self.async_translate(word, from, to))
+        rt.block_on(self.async_translate(word, to))
+    }
+    fn translate_to_langs(
+        &self,
+        word: &Word,
+        langs: Vec<Lang>,
+    ) -> Result<Vec<Word>, Box<dyn Error>> {
+        let mut res = vec![];
+        for lang in langs {
+            let trs = self.translate(word, &lang)?;
+            for w in trs {
+                res.push(Word {
+                    word: w,
+                    lang: lang.clone(),
+                })
+            }
+        }
+
+        Ok(res)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::translate::google::Client;
-    use crate::translate::{Lang, Translate};
+    use crate::translate::{Lang, Translate, Word};
     use std::env;
 
     #[test]
@@ -120,11 +137,13 @@ mod tests {
         }
         let g = Client::new(translate_token.as_str());
         match g.translate(
-            "word",
-            Lang {
-                lang: "en".to_string(),
+            &Word {
+                word: "word".to_string(),
+                lang: Lang {
+                    lang: "en".to_string(),
+                },
             },
-            Lang {
+            &Lang {
                 lang: "ru".to_string(),
             },
         ) {
