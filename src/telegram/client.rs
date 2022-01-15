@@ -1,5 +1,6 @@
 use std::error;
 
+use crate::translate::Lang;
 use hyper;
 use hyper::body::HttpBody;
 use hyper_tls::HttpsConnector;
@@ -42,6 +43,19 @@ pub struct Message {
     pub text: String,
     pub from: User,
     pub chat: Chat,
+}
+
+#[derive(Serialize)]
+pub struct Answer {
+    pub reply_to_message_id: i64,
+    //reply_markup
+    pub chat_id: i64,
+    pub text: String,
+}
+
+#[derive(Deserialize)]
+struct SendMessageResponse {
+    ok: bool,
 }
 
 impl Client {
@@ -93,5 +107,36 @@ impl Client {
         let res: UpdatesResponse = serde_json::from_slice(body.as_slice())?;
 
         Ok(res)
+    }
+
+    pub async fn send_msg(&self, msg: &Answer) -> Result<(), Box<dyn error::Error>> {
+        let form = serde_qs::to_string(msg)?;
+
+        let url = format!("{}/bot{}/sendMessage", API_URL, self.token);
+        let https = HttpsConnector::new();
+        let client = hyper::Client::builder().build::<_, hyper::Body>(https);
+        let req = hyper::Request::builder()
+            .method(hyper::Method::POST)
+            .uri(url)
+            .body(hyper::Body::from(form.as_bytes().to_vec()))?;
+        let mut resp = client.request(req).await?;
+        let mut body: Vec<u8> = vec![];
+        while let Some(chunk) = resp.body_mut().data().await {
+            let bt = chunk?;
+            for b in bt.iter() {
+                body.push(*b)
+            }
+        }
+        println!("{:?} \n {}", String::from_utf8(body.to_vec()), &form);
+        let mut body: Vec<u8> = vec![];
+        while let Some(chunk) = resp.body_mut().data().await {
+            let bt = chunk?;
+            for b in bt.iter() {
+                body.push(*b)
+            }
+        }
+        let res: SendMessageResponse = serde_json::from_slice(body.as_slice())?;
+
+        Ok(())
     }
 }
