@@ -30,10 +30,11 @@ struct TranslateTextResponseList {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct TranslateTextResponseTranslation {
     //detectedSourceLanguage: String,
     //model: String,
-    pub translatedText: String,
+    pub translated_text: String,
 }
 
 pub struct Client {
@@ -84,7 +85,7 @@ impl Client {
 
         let mut trs: Vec<String> = vec![];
         for t in res.data.translations {
-            trs.push(t.translatedText.to_string())
+            trs.push(t.translated_text.to_string())
         }
 
         Ok(trs)
