@@ -15,7 +15,7 @@ pub struct UserWords {
 #[derive(Debug, PartialEq, Clone)]
 pub enum UserErrorKind {
     NoLang,
-    NoWord,
+    //NoWord,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -27,7 +27,7 @@ impl fmt::Display for UserError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.kind {
             UserErrorKind::NoLang => write!(f, "No added langs"),
-            UserErrorKind::NoWord => write!(f, "Word not found"),
+            //UserErrorKind::NoWord => write!(f, "Word not found"),
         }
     }
 }

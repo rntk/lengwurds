@@ -1,6 +1,6 @@
 use std::error;
+use std::fmt;
 
-use crate::translate::Lang;
 use hyper;
 use hyper::body::HttpBody;
 use hyper_tls::HttpsConnector;
@@ -45,12 +45,32 @@ pub struct Message {
     pub chat: Chat,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct Answer {
     pub reply_to_message_id: i64,
     //reply_markup
     pub chat_id: i64,
     pub text: String,
+}
+
+impl fmt::Display for Answer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Chat: {}. To messge: {}. Text: {}",
+            self.chat_id, self.reply_to_message_id, self.text
+        )
+    }
+}
+
+impl Answer {
+    pub fn from_update(msg: &str, update: &Update) -> Answer {
+        Answer {
+            reply_to_message_id: update.message.message_id,
+            chat_id: update.message.chat.id,
+            text: msg.to_string(),
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -109,7 +129,7 @@ impl Client {
         Ok(res)
     }
 
-    pub async fn send_msg(&self, msg: &Answer) -> Result<(), Box<dyn error::Error>> {
+    pub async fn send_msg(&self, msg: &Answer) -> Result<bool, Box<dyn error::Error>> {
         let form = serde_qs::to_string(msg)?;
 
         let url = format!("{}/bot{}/sendMessage", API_URL, self.token);
@@ -137,6 +157,6 @@ impl Client {
         }
         let res: SendMessageResponse = serde_json::from_slice(body.as_slice())?;
 
-        Ok(())
+        Ok(res.ok)
     }
 }

@@ -28,6 +28,21 @@ pub struct Translate {
     pub word: Word,
 }
 
+impl fmt::Display for Translate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut s = format!(
+            "{} {}\n",
+            self.word.lang.lang.to_uppercase(),
+            self.word.word,
+        );
+        for w in &self.translates {
+            s.push_str(format!("\t{} {}\n", w.lang.lang.to_uppercase(), w.word).as_str());
+        }
+
+        write!(f, "{}", s)
+    }
+}
+
 #[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
 pub struct User {
     pub translates: Vec<Translate>,
@@ -112,7 +127,8 @@ impl Storage {
         self.save()
     }
 
-    pub fn delete(&mut self, user: User) -> Result<(), Box<dyn error::Error>> {
+    // unused
+    /*pub fn delete(&mut self, user: User) -> Result<(), Box<dyn error::Error>> {
         for (i, u) in self.db.iter().enumerate() {
             if u.id == user.id {
                 self.db.swap_remove(i);
@@ -121,5 +137,5 @@ impl Storage {
         }
 
         self.save()
-    }
+    }*/
 }
