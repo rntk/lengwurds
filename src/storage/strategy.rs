@@ -47,10 +47,9 @@ impl UserUpdateStrategy for AddTranslate {
                     hset.insert(t.clone());
                 }
                 for t in &self.tran.translates {
-                    hset.insert(t.clone());
-                }
-                u.translates[i].translates.clear();
-                for t in hset {
+                    if hset.contains(t) {
+                        continue;
+                    }
                     u.translates[i].translates.push(t.clone())
                 }
                 break;
@@ -158,7 +157,7 @@ mod tests {
             let u_test = User::new(id);
             test_u.push(u_test);
 
-            let mut u_expect = User::new(id);
+            let u_expect = User::new(id);
             expect_u.push(u_expect)
         }
         {
@@ -166,7 +165,7 @@ mod tests {
             u_test.langs.push("en".parse().unwrap());
             test_u.push(u_test);
 
-            let mut u_expect = User::new(id);
+            let u_expect = User::new(id);
             expect_u.push(u_expect)
         }
         {
@@ -196,7 +195,7 @@ mod tests {
             let u_test = User::new(id);
             test_u.push(u_test);
 
-            let mut u_expect = User::new(id);
+            let u_expect = User::new(id);
             expect_u.push(u_expect)
         }
         {
@@ -213,7 +212,7 @@ mod tests {
             });
             test_u.push(u_test);
 
-            let mut u_expect = User::new(id);
+            let u_expect = User::new(id);
             expect_u.push(u_expect)
         }
         {
