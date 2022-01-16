@@ -327,16 +327,10 @@ mod tests {
                     word: "word".to_string(),
                     lang: "en".parse().unwrap(),
                 },
-                translates: vec![
-                    Word {
-                        word: "слово".to_string(),
-                        lang: "ru".parse().unwrap(),
-                    },
-                    Word {
-                        word: "сөз".to_string(),
-                        lang: "kk".parse().unwrap(),
-                    },
-                ],
+                translates: vec![Word {
+                    word: "сөз".to_string(),
+                    lang: "kk".parse().unwrap(),
+                }],
             });
             test_u.push(u_test);
 
@@ -348,12 +342,12 @@ mod tests {
                 },
                 translates: vec![
                     Word {
-                        word: "слово".to_string(),
-                        lang: "ru".parse().unwrap(),
-                    },
-                    Word {
                         word: "сөз".to_string(),
                         lang: "kk".parse().unwrap(),
+                    },
+                    Word {
+                        word: "слово".to_string(),
+                        lang: "ru".parse().unwrap(),
                     },
                 ],
             });
