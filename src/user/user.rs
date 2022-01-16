@@ -58,7 +58,12 @@ impl UserWords {
     pub fn add_word(&mut self, user_id: i64, word: &Word) -> Result<(), Box<dyn error::Error>> {
         let mut stor = self.storage.write().unwrap();
         let langs: Vec<Lang> = match stor.get(user_id) {
-            Some(user) => user.langs,
+            Some(user) => user
+                .langs
+                .iter()
+                .filter(|l| l.lang != word.lang.lang)
+                .map(|l| l.clone())
+                .collect(),
             None => vec![],
         };
         if langs.is_empty() {

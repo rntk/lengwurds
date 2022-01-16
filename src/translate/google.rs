@@ -76,11 +76,11 @@ impl Client {
                 body.push(*b)
             }
         }
-        /*println!(
+        println!(
             "{:?} \n {}",
             String::from_utf8(body.to_vec()),
             serde_json::to_string(&q)?
-        );*/
+        );
         let res: TranslatesResponse = serde_json::from_slice(body.as_slice())?;
 
         let mut trs: Vec<String> = vec![];
