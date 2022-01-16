@@ -177,9 +177,8 @@ impl Client {
         //println!("{:?} \n {}", String::from_utf8(body.to_vec()), &form);
         let res: SendMessageResponse = serde_json::from_slice(body.as_slice())?;
         if !res.ok {
-            // TODO: check error to avoid possible panic on unwrap
             return Err(Box::new(Error {
-                description: String::from_utf8(body.to_vec()).unwrap(),
+                description: String::from_utf8(body.to_vec())?,
             }));
         }
 
