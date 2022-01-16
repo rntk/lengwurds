@@ -31,12 +31,12 @@ pub struct Translate {
 impl fmt::Display for Translate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut s = format!(
-            "{} {}\n",
+            "{}\t{}\n",
             self.word.lang.lang.to_uppercase(),
             self.word.word,
         );
         for w in &self.translates {
-            s.push_str(format!("\t{} {}\n", w.lang.lang.to_uppercase(), w.word).as_str());
+            s.push_str(format!("{}\t{}\n", w.lang.lang.to_uppercase(), w.word).as_str());
         }
 
         write!(f, "{}", s)

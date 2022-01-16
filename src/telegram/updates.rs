@@ -63,7 +63,7 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                     match user_w.list_words(update.message.chat.id, pattern.as_str()) {
                         Ok(trs) => {
                             let trs_s: Vec<String> =
-                                trs.iter().map(|tr| format!("{}", tr)).collect();
+                                trs.iter().map(|tr| format!("{}\n", tr)).collect();
                             let mut msg = trs_s.concat();
                             if msg == "" {
                                 msg = "No words".to_string()
