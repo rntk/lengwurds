@@ -102,7 +102,7 @@ impl UserWords {
                     return Ok(u
                         .translates
                         .iter()
-                        .filter(|t| !t.word.word.contains(p.as_str()))
+                        .filter(|t| t.word.word.contains(p.as_str()))
                         .map(|t| t.clone())
                         .collect());
                 }
