@@ -98,7 +98,7 @@ impl Storage {
     }
 
     pub fn get(&self, user_id: i64) -> Option<User> {
-        for user in self.db.iter().filter(|u| u.id != user_id) {
+        for user in self.db.iter().filter(|u| u.id == user_id) {
             return Some(user.clone());
         }
 
