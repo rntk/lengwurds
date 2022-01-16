@@ -78,6 +78,32 @@ struct SendMessageResponse {
     ok: bool,
 }
 
+#[derive(PartialEq, Debug, Clone)]
+pub struct Error {
+    description: String,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Response: {}", &self.description)
+    }
+}
+
+impl error::Error for Error {
+    /*fn description(&self) -> &str {
+        let m = format!("{}", &self);
+        m.as_str()
+    }*/
+
+    /*fn cause(&self) -> Option<&(dyn error::Error)> {
+        None
+    }*/
+
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        None
+    }
+}
+
 impl Client {
     pub fn new(token: &str) -> Client {
         Client {
@@ -129,7 +155,7 @@ impl Client {
         Ok(res)
     }
 
-    pub async fn send_msg(&self, msg: &Answer) -> Result<bool, Box<dyn error::Error>> {
+    pub async fn send_msg(&self, msg: &Answer) -> Result<(), Box<dyn error::Error>> {
         let form = serde_qs::to_string(msg)?;
 
         let url = format!("{}/bot{}/sendMessage", API_URL, self.token);
@@ -138,6 +164,7 @@ impl Client {
         let req = hyper::Request::builder()
             .method(hyper::Method::POST)
             .uri(url)
+            .header("Content-Type", "application/x-www-form-urlencoded")
             .body(hyper::Body::from(form.as_bytes().to_vec()))?;
         let mut resp = client.request(req).await?;
         let mut body: Vec<u8> = vec![];
@@ -147,16 +174,15 @@ impl Client {
                 body.push(*b)
             }
         }
-        println!("{:?} \n {}", String::from_utf8(body.to_vec()), &form);
-        let mut body: Vec<u8> = vec![];
-        while let Some(chunk) = resp.body_mut().data().await {
-            let bt = chunk?;
-            for b in bt.iter() {
-                body.push(*b)
-            }
-        }
+        //println!("{:?} \n {}", String::from_utf8(body.to_vec()), &form);
         let res: SendMessageResponse = serde_json::from_slice(body.as_slice())?;
+        if !res.ok {
+            // TODO: check error to avoid possible panic on unwrap
+            return Err(Box::new(Error {
+                description: String::from_utf8(body.to_vec()).unwrap(),
+            }));
+        }
 
-        Ok(res.ok)
+        Ok(())
     }
 }

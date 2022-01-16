@@ -29,7 +29,7 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                     );
                     let r = rt.block_on(cli.send_msg(&client::Answer {
                         chat_id: update.message.chat.id,
-                        text: "OK".to_string(),
+                        text: format!("Can't parse command: {}", e),
                         reply_to_message_id: update.message.message_id,
                     }));
                     if let Err(e) = r {
@@ -64,10 +64,11 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                         Ok(trs) => {
                             let trs_s: Vec<String> =
                                 trs.iter().map(|tr| format!("{}", tr)).collect();
-                            Ok(client::Answer::from_update(
-                                trs_s.concat().as_str(),
-                                &update,
-                            ))
+                            let mut msg = trs_s.concat();
+                            if msg == "" {
+                                msg = "No words".to_string()
+                            }
+                            Ok(client::Answer::from_update(msg.as_str(), &update))
                         }
                         Err(e) => Err(e),
                     }
@@ -76,10 +77,11 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                     Ok(langs) => {
                         let langs_s: Vec<String> =
                             langs.iter().map(|l| format!(" {} ", l.lang)).collect();
-                        Ok(client::Answer::from_update(
-                            langs_s.concat().as_str(),
-                            &update,
-                        ))
+                        let mut msg = langs_s.concat();
+                        if msg == "" {
+                            msg = "No langs".to_string()
+                        }
+                        Ok(client::Answer::from_update(msg.as_str(), &update))
                     }
                     Err(e) => Err(e),
                 },
@@ -93,22 +95,17 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                     );
                     let answer = client::Answer {
                         chat_id: update.message.chat.id,
-                        text: format!("{}", e),
+                        text: format!("Can't process command: {}", e),
                         reply_to_message_id: update.message.message_id,
                     };
                     answer
                 }
             };
-            match rt.block_on(cli.send_msg(&answer)) {
-                Ok(ok) => {
-                    if !ok {
-                        error!("Can't send telegram answer message: {} cause !ok", answer);
-                    }
-                }
-                Err(e) => error!(
+            if let Err(e) = rt.block_on(cli.send_msg(&answer)) {
+                error!(
                     "Can't send telegram answer to: '{}'. {}. {}",
                     update.message.text, answer, e
-                ),
+                )
             }
         }
     }
