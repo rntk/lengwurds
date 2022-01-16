@@ -1,5 +1,7 @@
+use std::error;
+use std::fmt;
+
 use crate::translate::{Lang, Translate, Word};
-use std::error::Error;
 
 use hyper;
 use hyper::body::HttpBody;
@@ -37,6 +39,32 @@ struct TranslateTextResponseTranslation {
     pub translated_text: String,
 }
 
+#[derive(PartialEq, Debug, Clone)]
+pub struct Error {
+    description: String,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Response: {}", &self.description)
+    }
+}
+
+impl error::Error for Error {
+    /*fn description(&self) -> &str {
+        let m = format!("{}", &self);
+        m.as_str()
+    }*/
+
+    /*fn cause(&self) -> Option<&(dyn error::Error)> {
+        None
+    }*/
+
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        None
+    }
+}
+
 pub struct Client {
     token: String,
 }
@@ -54,7 +82,7 @@ impl Client {
         &self,
         word: &Word,
         to: &Lang,
-    ) -> Result<Vec<String>, Box<dyn Error>> {
+    ) -> Result<Vec<String>, Box<dyn error::Error>> {
         let q = Query {
             q: word.word.to_string(),
             target: to.lang.to_string(),
@@ -76,12 +104,23 @@ impl Client {
                 body.push(*b)
             }
         }
-        println!(
+        /*println!(
             "{:?} \n {}",
             String::from_utf8(body.to_vec()),
             serde_json::to_string(&q)?
-        );
-        let res: TranslatesResponse = serde_json::from_slice(body.as_slice())?;
+        );*/
+        let serde_r = serde_json::from_slice(body.as_slice());
+        let res: TranslatesResponse = match serde_r {
+            Ok(res) => res,
+            Err(e) => {
+                let msg = format!(
+                    "Can't unmarshal: {}. {}",
+                    e,
+                    String::from_utf8(body.to_vec())?
+                );
+                return Err(Box::new(Error { description: msg }));
+            }
+        };
 
         let mut trs: Vec<String> = vec![];
         for t in res.data.translations {
@@ -93,7 +132,7 @@ impl Client {
 }
 
 impl Translate for Client {
-    fn translate(&self, word: &Word, to: &Lang) -> Result<Vec<String>, Box<dyn Error>> {
+    fn translate(&self, word: &Word, to: &Lang) -> Result<Vec<String>, Box<dyn error::Error>> {
         let rt = Builder::new_current_thread().enable_all().build().unwrap();
         rt.block_on(self.async_translate(word, to))
     }
@@ -101,7 +140,7 @@ impl Translate for Client {
         &self,
         word: &Word,
         langs: Vec<Lang>,
-    ) -> Result<Vec<Word>, Box<dyn Error>> {
+    ) -> Result<Vec<Word>, Box<dyn error::Error>> {
         let mut res = vec![];
         for lang in langs {
             let trs = self.translate(word, &lang)?;
@@ -126,7 +165,7 @@ mod tests {
     #[test]
     fn translate() {
         //cargo test -- --show-output
-        let translate_token = match env::var("LW_TRANSLATE") {
+        let translate_token = match env::var("LW_TRANSLATE_TEST") {
             Ok(t) => t,
             _ => {
                 println!("Skip google translate test");
