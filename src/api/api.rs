@@ -37,6 +37,34 @@ pub fn list_words(
     Ok(resp)
 }
 
+pub fn list_langs(
+    user_words: Arc<RwLock<UserWords>>,
+    req: &Request<Body>,
+) -> Result<Response<Body>, Error> {
+    let mut resp = match params::user_id(&req) {
+        Ok(user_id) => {
+            let user_w = user_words.read().unwrap();
+            match user_w.list_langs(user_id.user_id) {
+                Ok(words) => json_response(&words),
+                Err(e) => {
+                    error!("Can't get words list: {}", e);
+                    internal_server_error_response()
+                }
+            }
+        }
+        Err(e) => {
+            warn!("Params parse error: {}", e);
+            unauthorized_response()
+        }
+    };
+    resp.headers_mut().insert(
+        "Content-Type",
+        HeaderValue::from_str("application/json; charset=utf-8").unwrap(),
+    );
+
+    Ok(resp)
+}
+
 fn internal_server_error_response() -> Response<Body> {
     Response::builder()
         .status(StatusCode::INTERNAL_SERVER_ERROR)

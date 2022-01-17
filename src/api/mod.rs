@@ -8,6 +8,7 @@ use crate::UserWords;
 
 use hyper::{Body, Error, Method, Request, Response, StatusCode};
 
+// TODO: tokio RWLock
 pub async fn router(
     req: Request<Body>,
     user_h: Arc<RwLock<UserWords>>,
@@ -17,6 +18,7 @@ pub async fn router(
         (&Method::GET, "/static/front.js") => front::front_js(),
         (&Method::GET, "/static/front.css") => front::front_css(),
         (&Method::GET, "/api/words") => api::list_words(user_h, &req),
+        (&Method::GET, "/api/langs") => api::list_langs(user_h, &req),
         _ => {
             let mut not_found = Response::default();
             *not_found.status_mut() = StatusCode::NOT_FOUND;
