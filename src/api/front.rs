@@ -1,4 +1,5 @@
-use hyper::{Body, Response, Error};
+use hyper::header::HeaderValue;
+use hyper::{Body, Error, Response};
 
 pub fn front_js() -> Result<Response<Body>, Error> {
     let bytes = include_str!("../../front/front.js");
@@ -15,12 +16,19 @@ pub fn index() -> Result<Response<Body>, Error> {
 <DOCTYPE html>
 <html>
 <head>
-    <script src="/static/fron.js"></script>
+    <script src="/static/front.js"></script>
 </head>
 <body>
     <h1>Index</h1>
 </body>
 </html>
     "#;
-    Ok(Response::new(html.into()))
+    let mut resp = Response::new(html.into());
+
+    resp.headers_mut().insert(
+        "Content-Type",
+        HeaderValue::from_str("text/html; charset=utf-8").unwrap(),
+    );
+
+    Ok(resp)
 }
