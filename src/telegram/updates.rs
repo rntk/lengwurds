@@ -18,7 +18,6 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                 vec![]
             }
         };
-        let mut user_w = user_words.write().unwrap();
         for update in updates {
             let cmd: Command = match update.message.text.parse() {
                 Ok(cmd) => cmd,
@@ -39,52 +38,49 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                 }
             };
             let answer_res = match cmd {
-                Command::AddLang(lang) => match user_w.add_lang(update.message.chat.id, &lang) {
-                    Ok(()) => Ok(client::Answer::from_update("OK", &update)),
-                    Err(e) => Err(e),
-                },
-                Command::DeleteLang(lang) => {
-                    match user_w.delete_lang(update.message.chat.id, &lang) {
-                        Ok(()) => Ok(client::Answer::from_update("Lang deleted", &update)),
+                Command::AddLang(lang) => {
+                    let r = {
+                        let mut user_w = user_words.write().unwrap();
+                        user_w.add_lang(update.message.chat.id, &lang)
+                    };
+                    match r {
+                        Ok(()) => list_langs_answer(user_words.clone(), &update),
                         Err(e) => Err(e),
                     }
                 }
-                Command::AddWord(word) => match user_w.add_word(update.message.chat.id, &word) {
-                    Ok(()) => Ok(client::Answer::from_update("Word added", &update)),
-                    Err(e) => Err(e),
-                },
+                Command::DeleteLang(lang) => {
+                    let r = {
+                        let mut user_w = user_words.write().unwrap();
+                        user_w.delete_lang(update.message.chat.id, &lang)
+                    };
+                    match r {
+                        Ok(()) => list_langs_answer(user_words.clone(), &update),
+                        Err(e) => Err(e),
+                    }
+                }
+                Command::AddWord(word) => {
+                    let r = {
+                        let mut user_w = user_words.write().unwrap();
+                        user_w.add_word(update.message.chat.id, &word)
+                    };
+                    match r {
+                        Ok(()) => {
+                            list_words_answer(user_words.clone(), &update, word.word.as_str())
+                        }
+                        Err(e) => Err(e),
+                    }
+                }
                 Command::DeleteWord(word) => {
+                    let mut user_w = user_words.write().unwrap();
                     match user_w.delete_word(update.message.chat.id, &word) {
                         Ok(()) => Ok(client::Answer::from_update("Word deleted", &update)),
                         Err(e) => Err(e),
                     }
                 }
                 Command::ListWords(pattern) => {
-                    match user_w.list_words(update.message.chat.id, pattern.as_str()) {
-                        Ok(trs) => {
-                            let trs_s: Vec<String> =
-                                trs.iter().map(|tr| format!("{}\n", tr)).collect();
-                            let mut msg = trs_s.concat();
-                            if msg == "" {
-                                msg = "No words".to_string()
-                            }
-                            Ok(client::Answer::from_update(msg.as_str(), &update))
-                        }
-                        Err(e) => Err(e),
-                    }
+                    list_words_answer(user_words.clone(), &update, pattern.as_str())
                 }
-                Command::ListLangs => match user_w.list_langs(update.message.chat.id) {
-                    Ok(langs) => {
-                        let langs_s: Vec<String> =
-                            langs.iter().map(|l| format!(" {} ", l.lang)).collect();
-                        let mut msg = langs_s.concat();
-                        if msg == "" {
-                            msg = "No langs".to_string()
-                        }
-                        Ok(client::Answer::from_update(msg.as_str(), &update))
-                    }
-                    Err(e) => Err(e),
-                },
+                Command::ListLangs => list_langs_answer(user_words.clone(), &update),
             };
             let answer = match answer_res {
                 Ok(answer) => answer,
@@ -111,6 +107,35 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
     }
 }
 
-/*fn process_update(user_words: Arc<UserWords>, update: &client::Update) -> Result {
-    info!("{}", update.message.text)
-}*/
+fn list_words_answer(
+    user_words: Arc<RwLock<UserWords>>,
+    update: &client::Update,
+    pattern: &str,
+) -> Result<client::Answer, Box<dyn std::error::Error>> {
+    let user_w = user_words.read().unwrap();
+    match user_w.list_words(update.message.chat.id, pattern) {
+        Ok(trs) => {
+            let trs_s: Vec<String> = trs.iter().map(|tr| format!("{}\n", tr)).collect();
+            let mut msg = trs_s.concat();
+            if msg == "" {
+                msg = "No words".to_string()
+            }
+            Ok(client::Answer::from_update(msg.as_str(), &update))
+        }
+        Err(e) => Err(e),
+    }
+}
+
+fn list_langs_answer(
+    user_words: Arc<RwLock<UserWords>>,
+    update: &client::Update,
+) -> Result<client::Answer, Box<dyn std::error::Error>> {
+    let user_w = user_words.read().unwrap();
+    let langs = user_w.list_langs(update.message.chat.id)?;
+    let langs_s: Vec<String> = langs.iter().map(|l| format!(" {} ", l.lang)).collect();
+    let mut msg = langs_s.concat();
+    if msg == "" {
+        msg = "No langs".to_string()
+    }
+    Ok(client::Answer::from_update(msg.as_str(), &update))
+}
