@@ -175,7 +175,7 @@ mod tests {
         if translate_token == "" {
             return;
         }
-        let g = Client::new(translate_token.as_str());
+        let g = Client::new(&translate_token);
         match g.translate(
             &Word {
                 word: "word".to_string(),

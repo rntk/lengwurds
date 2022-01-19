@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let addr = SocketAddrV4::from(host.parse().expect("Invalid host address"));
 
-    let storage = match storage::Storage::new(db_path.as_str()) {
+    let storage = match storage::Storage::new(&db_path) {
         Ok(storage) => Arc::new(RwLock::new(storage)),
         Err(e) => {
             panic!("Can't open DB {}", e);
@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let user_words = Arc::new(RwLock::new(UserWords::new(
         storage.clone(),
-        translate::google::Client::new(translate_token.as_str()),
+        translate::google::Client::new(&translate_token),
     )));
     let telegram_user_words = user_words.clone();
 

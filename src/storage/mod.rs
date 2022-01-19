@@ -83,7 +83,7 @@ impl Storage {
                 path: path.to_string(),
             });
         }
-        let db: Vec<User> = serde_json::from_str(raw_json.as_str())?;
+        let db: Vec<User> = serde_json::from_str(&raw_json)?;
 
         Ok(Storage {
             db: db,

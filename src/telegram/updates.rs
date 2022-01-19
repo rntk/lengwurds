@@ -8,7 +8,7 @@ use log::{error, warn};
 use tokio::runtime::Builder;
 
 pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
-    let mut cli = client::Client::new(token.as_str());
+    let mut cli = client::Client::new(&token);
     let rt = Builder::new_current_thread().enable_all().build().unwrap();
     loop {
         let updates = match rt.block_on(cli.get_updates(60)) {
@@ -64,9 +64,7 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                         user_w.add_word(update.message.chat.id, &word)
                     };
                     match r {
-                        Ok(()) => {
-                            list_words_answer(user_words.clone(), &update, word.word.as_str())
-                        }
+                        Ok(()) => list_words_answer(user_words.clone(), &update, &word.word),
                         Err(e) => Err(e),
                     }
                 }
@@ -78,7 +76,7 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                     }
                 }
                 Command::ListWords(pattern) => {
-                    list_words_answer(user_words.clone(), &update, pattern.as_str())
+                    list_words_answer(user_words.clone(), &update, &pattern)
                 }
                 Command::ListLangs => list_langs_answer(user_words.clone(), &update),
             };
@@ -120,7 +118,7 @@ fn list_words_answer(
             if msg == "" {
                 msg = "No words".to_string()
             }
-            Ok(client::Answer::from_update(msg.as_str(), &update))
+            Ok(client::Answer::from_update(&msg, &update))
         }
         Err(e) => Err(e),
     }
@@ -137,5 +135,5 @@ fn list_langs_answer(
     if msg == "" {
         msg = "No langs".to_string()
     }
-    Ok(client::Answer::from_update(msg.as_str(), &update))
+    Ok(client::Answer::from_update(&msg, &update))
 }

@@ -42,7 +42,7 @@ impl FromStr for Command {
         let re = Regex::new(r"\s+").unwrap();
         let mut clear_s = s.to_lowercase().to_string();
         clear_s = clear_s.trim().to_string();
-        clear_s = re.replace_all(clear_s.as_str(), " ").to_string();
+        clear_s = re.replace_all(&clear_s, " ").to_string();
         let parts: Vec<&str> = clear_s.split(" ").collect();
 
         if parts.is_empty() {
