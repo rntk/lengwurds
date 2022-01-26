@@ -16,7 +16,7 @@ pub fn list_words(
     let mut resp = match params::user_id(&req) {
         Ok(user_id) => {
             let user_w = user_words.read().unwrap();
-            match user_w.list_words(user_id.user_id, "") {
+            match user_w.list_words(user_id.user_id, None) {
                 Ok(words) => json_response(&words),
                 Err(e) => {
                     error!("Can't get words list: {}", e);

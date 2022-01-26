@@ -12,6 +12,7 @@ pub enum Command {
     AddLang(translate::Lang),
     DeleteLang(translate::Lang),
     ListWords(String),
+    ListRandomWords(i8),
     AddWord(Word),
     DeleteWord(String),
 }
@@ -91,6 +92,20 @@ impl FromStr for Command {
                     pt = parts[1].to_string()
                 }
                 return Ok(Command::DeleteLang(pt.parse()?));
+            }
+            "/r" => {
+                let mut n: i8 = 3;
+                if parts.len() > 1 {
+                    n = match parts[1].to_string().parse() {
+                        Ok(n) => n,
+                        Err(_e) => {
+                            return Err(CommandParseError {
+                                description: "Can't parse number of words".to_string(),
+                            })
+                        }
+                    }
+                }
+                return Ok(Command::ListRandomWords(n));
             }
             _ => {
                 return Err(CommandParseError {
@@ -194,6 +209,15 @@ mod tests {
             "/dl enn".to_string(),
             Err(CommandParseError {
                 description: "Unsupported language".to_string(),
+            }),
+        );
+        table.insert("/r".to_string(), Ok(Command::ListRandomWords(3)));
+        table.insert("/r 5".to_string(), Ok(Command::ListRandomWords(5)));
+        table.insert("/r  5   ".to_string(), Ok(Command::ListRandomWords(5)));
+        table.insert(
+            "/r 1f".to_string(),
+            Err(CommandParseError {
+                description: "Can't parse number of words".to_string(),
             }),
         );
         table.insert("/ll".to_string(), Ok(Command::ListLangs));

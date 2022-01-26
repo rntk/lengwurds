@@ -92,22 +92,19 @@ impl UserWords {
     pub fn list_words(
         &self,
         user_id: i64,
-        pattern: &str,
+        pattern: Option<&str>,
     ) -> Result<Vec<storage::Translate>, Box<dyn error::Error>> {
         let stor = self.storage.read().unwrap();
         match stor.get(user_id) {
-            Some(u) => {
-                let p = pattern.to_string().to_lowercase();
-                if p != "" {
-                    return Ok(u
-                        .translates
-                        .iter()
-                        .filter(|t| t.word.word.contains(&p))
-                        .map(|t| t.clone())
-                        .collect());
-                }
-                return Ok(u.translates.to_vec());
-            }
+            Some(u) => match pattern {
+                Some(p) => Ok(u
+                    .translates
+                    .iter()
+                    .filter(|t| t.word.word.contains(&p))
+                    .map(|t| t.clone())
+                    .collect()),
+                None => Ok(u.translates.to_vec()),
+            },
             None => Ok(vec![]),
         }
     }

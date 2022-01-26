@@ -5,6 +5,8 @@ use crate::user::user::UserWords;
 
 use crate::telegram::commands::Command;
 use log::{error, warn};
+use rand;
+use rand::Rng;
 use tokio::runtime::Builder;
 
 pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
@@ -79,6 +81,33 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                     list_words_answer(user_words.clone(), &update, &pattern)
                 }
                 Command::ListLangs => list_langs_answer(user_words.clone(), &update),
+                Command::ListRandomWords(n) => {
+                    let user_w = user_words.read().unwrap();
+                    match user_w.list_words(update.message.chat.id, None) {
+                        Ok(trs) => {
+                            let mut trs_s: Vec<String>;
+                            if trs.len() <= n as usize {
+                                trs_s = trs.iter().map(|tr| format!("{}\n", tr)).collect();
+                            } else {
+                                trs_s = vec![];
+                                let s: i64 = rand::thread_rng().gen_range(0..trs.len() as i64);
+                                for i in 0..n {
+                                    let mut pos = s as usize + i as usize;
+                                    if pos >= trs.len() {
+                                        pos = pos - trs.len();
+                                    }
+                                    trs_s.push(format!("{}\n", &trs[pos]))
+                                }
+                            }
+                            let mut msg = trs_s.concat();
+                            if msg == "" {
+                                msg = "No words".to_string()
+                            }
+                            Ok(client::Answer::from_update(&msg, &update))
+                        }
+                        Err(e) => Err(e),
+                    }
+                }
             };
             let answer = match answer_res {
                 Ok(answer) => answer,
@@ -111,7 +140,7 @@ fn list_words_answer(
     pattern: &str,
 ) -> Result<client::Answer, Box<dyn std::error::Error>> {
     let user_w = user_words.read().unwrap();
-    match user_w.list_words(update.message.chat.id, pattern) {
+    match user_w.list_words(update.message.chat.id, Some(pattern)) {
         Ok(trs) => {
             let trs_s: Vec<String> = trs.iter().map(|tr| format!("{}\n", tr)).collect();
             let mut msg = trs_s.concat();
