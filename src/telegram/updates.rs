@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 
 use crate::telegram::client;
@@ -90,13 +91,14 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                                 trs_s = trs.iter().map(|tr| format!("{}\n", tr)).collect();
                             } else {
                                 trs_s = vec![];
-                                let s: i64 = rand::thread_rng().gen_range(0..trs.len() as i64);
-                                for i in 0..n {
-                                    let mut pos = s as usize + i as usize;
-                                    if pos >= trs.len() {
-                                        pos = pos - trs.len();
+                                let mut uniq: HashSet<usize> = HashSet::new();
+                                while trs_s.len() < n as usize {
+                                    let s: usize = rand::thread_rng().gen_range(0..trs.len());
+                                    if uniq.contains(&s) {
+                                        continue;
                                     }
-                                    trs_s.push(format!("{}\n", &trs[pos]))
+                                    uniq.insert(s);
+                                    trs_s.push(format!("{}\n", &trs[s]))
                                 }
                             }
                             let mut msg = trs_s.concat();
