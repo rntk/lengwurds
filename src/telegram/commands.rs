@@ -69,29 +69,29 @@ impl FromStr for Command {
                         description: "No word".to_string(),
                     });
                 }
-                return Ok(Command::DeleteWord(parts[1].to_string()));
+                Command::DeleteWord(parts[1].to_string())
             }
             "/lw" => {
                 let mut pt = "".to_string();
                 if parts.len() > 1 {
                     pt = parts[1].to_string()
                 }
-                return Ok(Command::ListWords(pt));
+                Command::ListWords(pt)
             }
             "/l" => {
                 let mut l = "".to_string();
                 if parts.len() > 1 {
                     l = parts[1].to_string();
                 }
-                return Ok(Command::AddLang(l.parse()?));
+                Command::AddLang(l.parse()?)
             }
-            "/ll" => return Ok(Command::ListLangs),
+            "/ll" => Command::ListLangs,
             "/dl" => {
                 let mut pt = "".to_string();
                 if parts.len() > 1 {
                     pt = parts[1].to_string()
                 }
-                return Ok(Command::DeleteLang(pt.parse()?));
+                Command::DeleteLang(pt.parse()?)
             }
             "/r" => {
                 let mut n: i8 = 3;
@@ -105,7 +105,7 @@ impl FromStr for Command {
                         }
                     }
                 }
-                return Ok(Command::ListRandomWords(n));
+                Command::ListRandomWords(n)
             }
             _ => {
                 return Err(CommandParseError {
