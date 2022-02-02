@@ -98,10 +98,33 @@ impl UserUpdateStrategy for DeleteLang {
     }
 }
 
+pub struct UpdateLastSeen {
+    pub words: Vec<Word>,
+    pub last_seen: u64,
+}
+
+impl UserUpdateStrategy for UpdateLastSeen {
+    fn apply(&self, user: &User) -> User {
+        let mut u = user.clone();
+        let mut words: HashSet<String> = HashSet::new();
+        for w in self.words.iter() {
+            words.insert(w.word.to_lowercase());
+        }
+        for tr in u.translates.iter_mut() {
+            if !words.contains(tr.word.word.to_lowercase().as_str()) {
+                continue;
+            }
+            tr.last_seen = self.last_seen;
+        }
+
+        u
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::storage::strategy::{
-        AddLang, AddTranslate, DeleteLang, DeleteWord, UserUpdateStrategy,
+        AddLang, AddTranslate, DeleteLang, DeleteWord, UpdateLastSeen, UserUpdateStrategy,
     };
     use crate::storage::{Translate, User, Word};
 
@@ -209,6 +232,7 @@ mod tests {
                     word: "слово".to_string(),
                     lang: "ru".parse().unwrap(),
                 }],
+                last_seen: 0,
             });
             test_u.push(u_test);
 
@@ -226,6 +250,7 @@ mod tests {
                     word: "слово".to_string(),
                     lang: "ru".parse().unwrap(),
                 }],
+                last_seen: 0,
             });
             u_test.translates.push(Translate {
                 word: Word {
@@ -236,6 +261,7 @@ mod tests {
                     word: "дверь".to_string(),
                     lang: "ru".parse().unwrap(),
                 }],
+                last_seen: 0,
             });
             test_u.push(u_test);
 
@@ -249,6 +275,7 @@ mod tests {
                     word: "дверь".to_string(),
                     lang: "ru".parse().unwrap(),
                 }],
+                last_seen: 0,
             });
             expect_u.push(u_expect)
         }
@@ -270,6 +297,7 @@ mod tests {
                     word: "слово".to_string(),
                     lang: "ru".parse().unwrap(),
                 }],
+                last_seen: 0,
             },
         };
         let mut test_u: Vec<User> = vec![];
@@ -289,6 +317,7 @@ mod tests {
                     word: "слово".to_string(),
                     lang: "ru".parse().unwrap(),
                 }],
+                last_seen: 0,
             });
             expect_u.push(u_expect)
         }
@@ -303,6 +332,7 @@ mod tests {
                     word: "слово".to_string(),
                     lang: "ru".parse().unwrap(),
                 }],
+                last_seen: 0,
             });
             test_u.push(u_test);
 
@@ -316,6 +346,7 @@ mod tests {
                     word: "слово".to_string(),
                     lang: "ru".parse().unwrap(),
                 }],
+                last_seen: 0,
             });
             expect_u.push(u_expect)
         }
@@ -330,6 +361,7 @@ mod tests {
                     word: "сөз".to_string(),
                     lang: "kk".parse().unwrap(),
                 }],
+                last_seen: 0,
             });
             test_u.push(u_test);
 
@@ -349,6 +381,119 @@ mod tests {
                         lang: "ru".parse().unwrap(),
                     },
                 ],
+                last_seen: 0,
+            });
+            expect_u.push(u_expect)
+        }
+
+        for (i, tst) in test_u.iter().enumerate() {
+            assert_eq!(expect_u[i], strat.apply(tst), "Failed test: {}", i)
+        }
+    }
+
+    #[test]
+    fn update_last_seen() {
+        let last_seen: u64 = 10;
+        let strat = UpdateLastSeen {
+            words: vec![
+                Word {
+                    word: "word".to_string(),
+                    lang: "en".parse().unwrap(),
+                },
+                Word {
+                    word: "слово".to_string(),
+                    lang: "ru".parse().unwrap(),
+                },
+            ],
+            last_seen: last_seen,
+        };
+        let mut test_u: Vec<User> = vec![];
+        let mut expect_u: Vec<User> = vec![];
+        let id = 1;
+        {
+            let mut u_test = User::new(id);
+            u_test.translates.push(Translate {
+                word: Word {
+                    word: "word".to_string(),
+                    lang: "en".parse().unwrap(),
+                },
+                translates: vec![],
+                last_seen: 0,
+            });
+            test_u.push(u_test);
+
+            let mut u_expect = User::new(id);
+            u_expect.translates.push(Translate {
+                word: Word {
+                    word: "word".to_string(),
+                    lang: "en".parse().unwrap(),
+                },
+                translates: vec![],
+                last_seen: last_seen,
+            });
+
+            expect_u.push(u_expect)
+        }
+        {
+            let mut u_test = User::new(id);
+            u_test.translates.push(Translate {
+                word: Word {
+                    word: "word".to_string(),
+                    lang: "en".parse().unwrap(),
+                },
+                translates: vec![],
+                last_seen: 0,
+            });
+            u_test.translates.push(Translate {
+                word: Word {
+                    word: "слово".to_string(),
+                    lang: "ru".parse().unwrap(),
+                },
+                translates: vec![],
+                last_seen: 0,
+            });
+            test_u.push(u_test);
+
+            let mut u_expect = User::new(id);
+            u_expect.translates.push(Translate {
+                word: Word {
+                    word: "word".to_string(),
+                    lang: "en".parse().unwrap(),
+                },
+                translates: vec![],
+                last_seen: last_seen,
+            });
+            u_expect.translates.push(Translate {
+                word: Word {
+                    word: "слово".to_string(),
+                    lang: "ru".parse().unwrap(),
+                },
+                translates: vec![],
+                last_seen: last_seen,
+            });
+
+            expect_u.push(u_expect)
+        }
+        {
+            let mut u_test = User::new(id);
+            u_test.translates.push(Translate {
+                word: Word {
+                    word: "сөз".to_string(),
+                    lang: "kk".parse().unwrap(),
+                },
+                translates: vec![],
+                last_seen: 0,
+            });
+            test_u.push(u_test);
+
+            let mut u_expect = User::new(id);
+            u_expect.translates.push(Translate {
+                word: Word {
+                    word: "сөз".to_string(),
+                    lang: "kk".parse().unwrap(),
+                },
+                translates: vec![],
+                last_seen: 0,
             });
             expect_u.push(u_expect)
         }

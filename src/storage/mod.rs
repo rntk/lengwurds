@@ -26,6 +26,8 @@ impl fmt::Display for Word {
 pub struct Translate {
     pub translates: Vec<Word>,
     pub word: Word,
+    #[serde(default)]
+    pub last_seen: u64,
 }
 
 impl fmt::Display for Translate {

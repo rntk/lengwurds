@@ -3,6 +3,7 @@ use std::sync::{Arc, RwLock};
 use std::thread::sleep;
 use std::time::Duration;
 
+use crate::storage::Word;
 use crate::telegram::client;
 use crate::user::user::UserWords;
 
@@ -93,22 +94,29 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                 }
                 Command::ListLangs => list_langs_answer(user_words.clone(), &message),
                 Command::ListRandomWords(n) => {
-                    let user_w = user_words.read().unwrap();
+                    let mut user_w = user_words.write().unwrap();
                     match user_w.list_words(message.chat.id, None) {
-                        Ok(trs) => {
-                            let mut trs_s: Vec<String>;
-                            if trs.len() <= n as usize {
-                                trs_s = trs.iter().map(|tr| format!("{}\n", tr)).collect();
-                            } else {
-                                trs_s = vec![];
-                                let mut uniq: HashSet<usize> = HashSet::new();
-                                while trs_s.len() < n as usize {
-                                    let s: usize = rand::thread_rng().gen_range(0..trs.len());
-                                    if uniq.contains(&s) {
-                                        continue;
-                                    }
-                                    uniq.insert(s);
-                                    trs_s.push(format!("{}\n", &trs[s]))
+                        Ok(mut trs) => {
+                            let mut trs_s: Vec<String> = vec![];
+                            let mut words: Vec<Word> = vec![];
+                            let mut len = trs.len() / 2;
+                            trs.sort_by_key(|k| k.last_seen);
+                            if len < n as usize {
+                                len = n as usize;
+                            }
+                            let mut uniq: HashSet<usize> = HashSet::new();
+                            while trs_s.len() < n as usize {
+                                let s: usize = rand::thread_rng().gen_range(0..len);
+                                if uniq.contains(&s) {
+                                    continue;
+                                }
+                                uniq.insert(s);
+                                trs_s.push(format!("{}\n", &trs[s]));
+                                words.push(trs[s].word.clone())
+                            }
+                            if !words.is_empty() {
+                                if let Err(e) = user_w.update_last_seen(message.chat.id, words) {
+                                    error!("Can't update last seen for: {}. {}", message.chat.id, e)
                                 }
                             }
                             let mut msg = trs_s.concat();

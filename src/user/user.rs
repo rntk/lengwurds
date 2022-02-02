@@ -1,6 +1,7 @@
 use std::error;
 use std::fmt;
 use std::sync::{Arc, RwLock};
+use std::time::SystemTime;
 
 use crate::storage;
 use crate::storage::{strategy, Storage, Word};
@@ -74,6 +75,7 @@ impl UserWords {
         let tran = storage::Translate {
             word: word.clone(),
             translates: self.translator.translate_to_langs(&word, langs)?,
+            last_seen: 0,
         };
 
         stor.upsert(user_id, strategy::AddTranslate { tran })
@@ -125,5 +127,18 @@ impl UserWords {
             Some(u) => Ok(u.langs.to_vec()),
             None => Ok(vec![]),
         }
+    }
+
+    pub fn update_last_seen(
+        &mut self,
+        user_id: i64,
+        words: Vec<Word>,
+    ) -> Result<(), Box<dyn error::Error>> {
+        let mut stor = self.storage.write().unwrap();
+        let last_seen = match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+            Ok(n) => n.as_secs(),
+            Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+        };
+        stor.upsert(user_id, strategy::UpdateLastSeen { words, last_seen })
     }
 }
