@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 use std::thread::sleep;
+use std::time;
 use std::time::Duration;
 
 use crate::storage::Word;
@@ -17,7 +18,7 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
     let mut cli = client::Client::new(&token);
     let rt = Builder::new_current_thread().enable_all().build().unwrap();
     loop {
-        let updates = match rt.block_on(cli.get_updates(60)) {
+        let updates = match rt.block_on(cli.get_updates(time::Duration::from_secs(60))) {
             Ok(updates) => updates,
             Err(e) => {
                 error!("Telegram updates error: {}", e);

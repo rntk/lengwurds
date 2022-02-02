@@ -1,5 +1,5 @@
-use std::error;
 use std::fmt;
+use std::{error, time};
 
 use hyper;
 use hyper::body::HttpBody;
@@ -124,9 +124,9 @@ impl Client {
 
     pub async fn get_updates(
         &mut self,
-        long_poll_seconds: u32,
+        long_poll: time::Duration,
     ) -> Result<Vec<Update>, Box<dyn error::Error>> {
-        let updates = self.get_updates_(long_poll_seconds).await?;
+        let updates = self.get_updates_(long_poll).await?;
         let last = updates.result.len();
         if last > 0 {
             self.last_update = updates.result[last - 1].update_id
@@ -137,11 +137,11 @@ impl Client {
 
     async fn get_updates_(
         &self,
-        long_poll_seconds: u32,
+        long_poll: time::Duration,
     ) -> Result<UpdatesResponse, Box<dyn error::Error>> {
         let mut timeout = "".to_string();
-        if long_poll_seconds > 0 {
-            timeout = format!("&timeout={}", long_poll_seconds);
+        if long_poll.as_secs() > 0 {
+            timeout = format!("&timeout={}", long_poll.as_secs());
         }
         let uri = format!(
             "{}/bot{}/getUpdates?offset={}{}",
