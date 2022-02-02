@@ -100,7 +100,7 @@ impl UserWords {
                 Some(p) => Ok(u
                     .translates
                     .iter()
-                    .filter(|t| t.word.word.contains(&p))
+                    .filter(|t| t.contains(&p))
                     .map(|t| t.clone())
                     .collect()),
                 None => Ok(u.translates.to_vec()),

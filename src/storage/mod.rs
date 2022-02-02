@@ -43,6 +43,20 @@ impl fmt::Display for Translate {
     }
 }
 
+impl Translate {
+    pub fn contains(&self, pattern: &str) -> bool {
+        if self.word.word.contains(pattern) {
+            return true;
+        }
+        for w in self.translates.iter() {
+            if w.word.contains(pattern) {
+                return true;
+            }
+        }
+        false
+    }
+}
+
 #[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
 pub struct User {
     pub translates: Vec<Translate>,
