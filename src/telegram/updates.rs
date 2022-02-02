@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
+use std::thread::sleep;
+use std::time::Duration;
 
 use crate::telegram::client;
 use crate::user::user::UserWords;
@@ -18,21 +20,29 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
             Ok(updates) => updates,
             Err(e) => {
                 error!("Telegram updates error: {}", e);
-                vec![]
+                sleep(Duration::from_secs(5));
+                continue;
             }
         };
         for update in updates {
-            let cmd: Command = match update.message.text.parse() {
+            let message = match update.message {
+                Some(msg) => msg,
+                None => match update.edited_message {
+                    Some(msg) => msg,
+                    None => continue,
+                },
+            };
+            let cmd: Command = match message.text.parse() {
                 Ok(cmd) => cmd,
                 Err(e) => {
                     warn!(
                         "Can't parse command from: {}. {}. {}",
-                        update.message.chat.id, update.message.text, e
+                        message.chat.id, message.text, e
                     );
                     let r = rt.block_on(cli.send_msg(&client::Answer {
-                        chat_id: update.message.chat.id,
+                        chat_id: message.chat.id,
                         text: format!("Can't parse command: {}", e),
-                        reply_to_message_id: update.message.message_id,
+                        reply_to_message_id: message.message_id,
                     }));
                     if let Err(e) = r {
                         error!("Can't send telegram error message: {}", e);
@@ -44,47 +54,47 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                 Command::AddLang(lang) => {
                     let r = {
                         let mut user_w = user_words.write().unwrap();
-                        user_w.add_lang(update.message.chat.id, &lang)
+                        user_w.add_lang(message.chat.id, &lang)
                     };
                     match r {
-                        Ok(()) => list_langs_answer(user_words.clone(), &update),
+                        Ok(()) => list_langs_answer(user_words.clone(), &message),
                         Err(e) => Err(e),
                     }
                 }
                 Command::DeleteLang(lang) => {
                     let r = {
                         let mut user_w = user_words.write().unwrap();
-                        user_w.delete_lang(update.message.chat.id, &lang)
+                        user_w.delete_lang(message.chat.id, &lang)
                     };
                     match r {
-                        Ok(()) => list_langs_answer(user_words.clone(), &update),
+                        Ok(()) => list_langs_answer(user_words.clone(), &message),
                         Err(e) => Err(e),
                     }
                 }
                 Command::AddWord(word) => {
                     let r = {
                         let mut user_w = user_words.write().unwrap();
-                        user_w.add_word(update.message.chat.id, &word)
+                        user_w.add_word(message.chat.id, &word)
                     };
                     match r {
-                        Ok(()) => list_words_answer(user_words.clone(), &update, &word.word),
+                        Ok(()) => list_words_answer(user_words.clone(), &message, &word.word),
                         Err(e) => Err(e),
                     }
                 }
                 Command::DeleteWord(word) => {
                     let mut user_w = user_words.write().unwrap();
-                    match user_w.delete_word(update.message.chat.id, &word) {
-                        Ok(()) => Ok(client::Answer::from_update("Word deleted", &update)),
+                    match user_w.delete_word(message.chat.id, &word) {
+                        Ok(()) => Ok(client::Answer::from_message("Word deleted", &message)),
                         Err(e) => Err(e),
                     }
                 }
                 Command::ListWords(pattern) => {
-                    list_words_answer(user_words.clone(), &update, &pattern)
+                    list_words_answer(user_words.clone(), &message, &pattern)
                 }
-                Command::ListLangs => list_langs_answer(user_words.clone(), &update),
+                Command::ListLangs => list_langs_answer(user_words.clone(), &message),
                 Command::ListRandomWords(n) => {
                     let user_w = user_words.read().unwrap();
-                    match user_w.list_words(update.message.chat.id, None) {
+                    match user_w.list_words(message.chat.id, None) {
                         Ok(trs) => {
                             let mut trs_s: Vec<String>;
                             if trs.len() <= n as usize {
@@ -105,7 +115,7 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                             if msg == "" {
                                 msg = "No words".to_string()
                             }
-                            Ok(client::Answer::from_update(&msg, &update))
+                            Ok(client::Answer::from_message(&msg, &message))
                         }
                         Err(e) => Err(e),
                     }
@@ -116,12 +126,12 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                 Err(e) => {
                     error!(
                         "Can't process command from: {}. {}. {}",
-                        update.message.chat.id, update.message.text, e
+                        message.chat.id, message.text, e
                     );
                     let answer = client::Answer {
-                        chat_id: update.message.chat.id,
+                        chat_id: message.chat.id,
                         text: format!("Can't process command: {}", e),
-                        reply_to_message_id: update.message.message_id,
+                        reply_to_message_id: message.message_id,
                     };
                     answer
                 }
@@ -129,7 +139,7 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
             if let Err(e) = rt.block_on(cli.send_msg(&answer)) {
                 error!(
                     "Can't send telegram answer to: '{}'. {}. {}",
-                    update.message.text, answer, e
+                    message.text, answer, e
                 )
             }
         }
@@ -138,18 +148,18 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
 
 fn list_words_answer(
     user_words: Arc<RwLock<UserWords>>,
-    update: &client::Update,
+    message: &client::Message,
     pattern: &str,
 ) -> Result<client::Answer, Box<dyn std::error::Error>> {
     let user_w = user_words.read().unwrap();
-    match user_w.list_words(update.message.chat.id, Some(pattern)) {
+    match user_w.list_words(message.chat.id, Some(pattern)) {
         Ok(trs) => {
             let trs_s: Vec<String> = trs.iter().map(|tr| format!("{}\n", tr)).collect();
             let mut msg = trs_s.concat();
             if msg == "" {
                 msg = "No words".to_string()
             }
-            Ok(client::Answer::from_update(&msg, &update))
+            Ok(client::Answer::from_message(&msg, &message))
         }
         Err(e) => Err(e),
     }
@@ -157,14 +167,14 @@ fn list_words_answer(
 
 fn list_langs_answer(
     user_words: Arc<RwLock<UserWords>>,
-    update: &client::Update,
+    message: &client::Message,
 ) -> Result<client::Answer, Box<dyn std::error::Error>> {
     let user_w = user_words.read().unwrap();
-    let langs = user_w.list_langs(update.message.chat.id)?;
+    let langs = user_w.list_langs(message.chat.id)?;
     let langs_s: Vec<String> = langs.iter().map(|l| format!(" {} ", l.lang)).collect();
     let mut msg = langs_s.concat();
     if msg == "" {
         msg = "No langs".to_string()
     }
-    Ok(client::Answer::from_update(&msg, &update))
+    Ok(client::Answer::from_message(&msg, &message))
 }

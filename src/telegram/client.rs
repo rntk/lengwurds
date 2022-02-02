@@ -29,7 +29,10 @@ pub struct User {
 #[derive(Deserialize, Serialize)]
 pub struct Update {
     update_id: i64,
-    pub message: Message,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<Message>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edited_message: Option<Message>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -64,10 +67,17 @@ impl fmt::Display for Answer {
 }
 
 impl Answer {
-    pub fn from_update(msg: &str, update: &Update) -> Answer {
+    /*pub fn from_update(msg: &str, update: &Update) -> Answer {
         Answer {
             reply_to_message_id: update.message.message_id,
             chat_id: update.message.chat.id,
+            text: msg.to_string(),
+        }
+    }*/
+    pub fn from_message(msg: &str, message: &Message) -> Answer {
+        Answer {
+            reply_to_message_id: message.message_id,
+            chat_id: message.chat.id,
             text: msg.to_string(),
         }
     }
@@ -150,9 +160,12 @@ impl Client {
                 body.push(*b)
             }
         }
-        let res: UpdatesResponse = serde_json::from_slice(body.as_slice())?;
-
-        Ok(res)
+        match serde_json::from_slice(body.as_slice()) {
+            Ok(r) => Ok(r),
+            Err(e) => Err(Box::new(Error {
+                description: format!("{}. {}", e, String::from_utf8(body)?),
+            })),
+        }
     }
 
     pub async fn send_msg(&self, msg: &Answer) -> Result<(), Box<dyn error::Error>> {
