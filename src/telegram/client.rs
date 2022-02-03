@@ -1,4 +1,5 @@
 use std::fmt;
+use std::ops::Add;
 use std::{error, time};
 
 use hyper;
@@ -126,7 +127,15 @@ impl Client {
         &mut self,
         long_poll: time::Duration,
     ) -> Result<Vec<Update>, Box<dyn error::Error>> {
-        let updates = self.get_updates_(long_poll).await?;
+        let future_res = tokio::time::timeout(
+            time::Duration::from_secs(5).add(long_poll),
+            self.get_updates_(long_poll),
+        )
+        .await?;
+        let updates = match future_res {
+            Ok(updates) => updates,
+            Err(e) => return Err(e),
+        };
         let last = updates.result.len();
         if last > 0 {
             self.last_update = updates.result[last - 1].update_id
@@ -169,6 +178,10 @@ impl Client {
     }
 
     pub async fn send_msg(&self, msg: &Answer) -> Result<(), Box<dyn error::Error>> {
+        tokio::time::timeout(time::Duration::from_secs(5), self.send_msg_(msg)).await?
+    }
+
+    async fn send_msg_(&self, msg: &Answer) -> Result<(), Box<dyn error::Error>> {
         let form = serde_qs::to_string(msg)?;
 
         let url = format!("{}/bot{}/sendMessage", API_URL, self.token);
