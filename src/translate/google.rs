@@ -9,7 +9,23 @@ use hyper_tls::HttpsConnector;
 use serde::{Deserialize, Serialize};
 use tokio::runtime::Builder;
 
-const API_URL: &str = "https://translation.googleapis.com/language/translate/v2";
+const API_HOST: &str = "translation.googleapis.com";
+
+#[derive(Deserialize)]
+struct SupportedLangsResponse {
+    pub data: SupportedLangsList,
+}
+
+#[derive(Deserialize)]
+struct SupportedLang {
+    pub language: String,
+    //pub name: String,
+}
+
+#[derive(Deserialize)]
+struct SupportedLangsList {
+    pub languages: Vec<SupportedLang>,
+}
 
 #[derive(Serialize)]
 struct Query {
@@ -91,7 +107,10 @@ impl Client {
         };
         let https = HttpsConnector::new();
         let client = hyper::Client::builder().build::<_, hyper::Body>(https);
-        let url = format!("{}?key={}", API_URL, self.token);
+        let url = format!(
+            "https://{}/language/translate/v2?key={}",
+            API_HOST, self.token
+        );
         let req = hyper::Request::builder()
             .method(hyper::Method::POST)
             .uri(url)
@@ -129,6 +148,48 @@ impl Client {
 
         Ok(trs)
     }
+
+    pub async fn async_supported_langs(&self) -> Result<Vec<String>, Box<dyn error::Error>> {
+        let https = HttpsConnector::new();
+        let client = hyper::Client::builder().build::<_, hyper::Body>(https);
+        let url_s = format!(
+            "https://{}/language/translate/v2/languages?key={}",
+            API_HOST, self.token
+        );
+        let url: hyper::Uri = url_s.parse()?;
+        let mut resp = client.get(url).await?;
+        let mut body: Vec<u8> = vec![];
+        while let Some(chunk) = resp.body_mut().data().await {
+            let bt = chunk?;
+            for b in bt.iter() {
+                body.push(*b)
+            }
+        }
+        /*println!(
+            "{:?} \n {}",
+            String::from_utf8(body.to_vec()),
+            serde_json::to_string(&q)?
+        );*/
+        let serde_r = serde_json::from_slice(body.as_slice());
+        let res: SupportedLangsResponse = match serde_r {
+            Ok(res) => res,
+            Err(e) => {
+                let msg = format!(
+                    "Can't unmarshal: {}. {}",
+                    e,
+                    String::from_utf8(body.to_vec())?
+                );
+                return Err(Box::new(Error { description: msg }));
+            }
+        };
+
+        let mut langs: Vec<String> = vec![];
+        for l in res.data.languages {
+            langs.push(l.language)
+        }
+
+        Ok(langs)
+    }
 }
 
 impl Translate for Client {
@@ -153,6 +214,10 @@ impl Translate for Client {
         }
 
         Ok(res)
+    }
+    fn supported_langs(&self) -> Result<Vec<String>, Box<dyn error::Error>> {
+        let rt = Builder::new_current_thread().enable_all().build().unwrap();
+        rt.block_on(self.async_supported_langs())
     }
 }
 
@@ -189,6 +254,29 @@ mod tests {
         ) {
             Ok(trs) => {
                 trs.iter().for_each(|s| println!("Translate: {}\n", s));
+                return;
+            }
+            Err(e) => assert!(false, "{}", e),
+        }
+    }
+
+    #[test]
+    fn supported_langs() {
+        //cargo test -- --show-output
+        let translate_token = match env::var("LW_TRANSLATE_TEST") {
+            Ok(t) => t,
+            _ => {
+                println!("Skip google translate test");
+                "".to_string()
+            }
+        };
+        if translate_token == "" {
+            return;
+        }
+        let g = Client::new(&translate_token);
+        match g.supported_langs() {
+            Ok(trs) => {
+                trs.iter().for_each(|s| println!("Lang: {}\n", s));
                 return;
             }
             Err(e) => assert!(false, "{}", e),

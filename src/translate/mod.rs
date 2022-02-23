@@ -57,4 +57,6 @@ pub trait Translate {
         word: &Word,
         langs: Vec<Lang>,
     ) -> Result<Vec<Word>, Box<dyn Error>>;
+
+    fn supported_langs(&self) -> Result<Vec<String>, Box<dyn Error>>;
 }
