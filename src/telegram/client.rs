@@ -128,7 +128,7 @@ impl Client {
         long_poll: time::Duration,
     ) -> Result<Vec<Update>, Box<dyn error::Error>> {
         let future_res = tokio::time::timeout(
-            time::Duration::from_secs(5).add(long_poll),
+            time::Duration::from_secs(600).add(long_poll),
             self.get_updates_(long_poll),
         )
         .await?;
