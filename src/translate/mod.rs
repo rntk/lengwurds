@@ -23,7 +23,7 @@ impl fmt::Display for LangParseError {
     }
 }
 
-const SUPPORTED_LANGS: [&str; 3] = ["ru", "en", "kk"];
+const SUPPORTED_LANGS: [&str; 4] = ["ru", "en", "kk", "de"];
 
 impl FromStr for Lang {
     type Err = LangParseError;
