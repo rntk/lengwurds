@@ -1,7 +1,9 @@
 [Unit]
-Description=iRun lengwurds at boot time
+Description=Run lengwurds at boot time
+
+[Service]
+ExecStart=/app/lengwurds
 EnvironmentFile=/app/tmp/t
-ExecStart=/app/target/release/lengwurds
 Restart=always
 RestartSec=5
 
