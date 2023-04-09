@@ -6,6 +6,15 @@ use crate::translate;
 
 use regex::Regex;
 
+const LIST_LANGS_KEYWORD: &str = "/ll";
+const ADD_LANG_KEYWORD: &str = "/l";
+const DELETE_LANG_KEYWORD: &str = "/dl";
+const LIST_WORDS_KEYWORD: &str = "/lw";
+const LIST_RANDOM_WORDS_KEYWORD: &str = "/r";
+const ADD_WORD_KEYWORD: &str = "/w";
+const DELETE_WORD_KEYWORD: &str = "/dw";
+const HELP_KEYWORD: &str = "/help";
+
 #[derive(Debug, PartialEq)]
 pub enum Command {
     ListLangs,
@@ -15,6 +24,7 @@ pub enum Command {
     ListRandomWords(i8),
     AddWord(Word),
     DeleteWord(String),
+    Help,
 }
 
 #[derive(Debug, PartialEq)]
@@ -52,7 +62,7 @@ impl FromStr for Command {
             });
         }
         let cmd = match parts[0] {
-            "/w" => {
+            ADD_WORD_KEYWORD => {
                 if parts.len() < 3 {
                     return Err(CommandParseError {
                         description: "Not enough data to add new word".to_string(),
@@ -63,7 +73,7 @@ impl FromStr for Command {
                     lang: parts[2].parse()?,
                 })
             }
-            "/dw" => {
+            DELETE_WORD_KEYWORD => {
                 if parts.len() == 1 {
                     return Err(CommandParseError {
                         description: "No word".to_string(),
@@ -71,29 +81,29 @@ impl FromStr for Command {
                 }
                 Command::DeleteWord(parts[1].to_string())
             }
-            "/lw" => {
+            LIST_WORDS_KEYWORD => {
                 let mut pt = "".to_string();
                 if parts.len() > 1 {
                     pt = parts[1].to_string()
                 }
                 Command::ListWords(pt)
             }
-            "/l" => {
+            ADD_LANG_KEYWORD => {
                 let mut l = "".to_string();
                 if parts.len() > 1 {
                     l = parts[1].to_string();
                 }
                 Command::AddLang(l.parse()?)
             }
-            "/ll" => Command::ListLangs,
-            "/dl" => {
+            LIST_LANGS_KEYWORD => Command::ListLangs,
+            DELETE_LANG_KEYWORD => {
                 let mut pt = "".to_string();
                 if parts.len() > 1 {
                     pt = parts[1].to_string()
                 }
                 Command::DeleteLang(pt.parse()?)
             }
-            "/r" => {
+            LIST_RANDOM_WORDS_KEYWORD => {
                 let mut n: i8 = 3;
                 if parts.len() > 1 {
                     n = match parts[1].to_string().parse() {
@@ -107,6 +117,7 @@ impl FromStr for Command {
                 }
                 Command::ListRandomWords(n)
             }
+            HELP_KEYWORD => Command::Help,
             _ => {
                 return Err(CommandParseError {
                     description: "Unknown command".to_string(),
@@ -115,6 +126,37 @@ impl FromStr for Command {
         };
 
         Ok(cmd)
+    }
+}
+
+impl Command {
+    pub fn help(&self) -> String {
+        match self {
+            Command::ListLangs => {
+                "List all supported languages".to_string()
+            }
+            Command::AddLang(_) => {
+                format!("Add new language. Example: {} en", ADD_LANG_KEYWORD).to_string()
+            }
+            Command::DeleteLang(_) => {
+                format!("Delete language. Example: {} en", DELETE_LANG_KEYWORD).to_string()
+            }
+            Command::ListWords(_) => {
+                format!("List all words. Example: {} word", LIST_WORDS_KEYWORD).to_string()
+            }
+            Command::ListRandomWords(_) => {
+                format!("List random words. Example: {} 5", LIST_RANDOM_WORDS_KEYWORD).to_string()
+            }
+            Command::AddWord(_) => {
+                format!("Add new word. Example: {} word en", ADD_WORD_KEYWORD).to_string()
+            }
+            Command::DeleteWord(_) => {
+                format!("Delete word. Example: {} word", DELETE_WORD_KEYWORD).to_string()
+            }
+            Command::Help => {
+                format!("Print help. Example {}", HELP_KEYWORD)
+            }
+        }
     }
 }
 

@@ -129,6 +129,26 @@ pub fn updates_processing(user_words: Arc<RwLock<UserWords>>, token: String) {
                         Err(e) => Err(e),
                     }
                 }
+                Command::Help => {
+                    let helps = vec![
+                        Command::ListLangs.help(),
+                        Command::AddLang("en".parse().unwrap()).help(),
+                        Command::DeleteLang("en".parse().unwrap()).help(),
+                        Command::ListWords("word".to_string()).help(),
+                        Command::ListRandomWords(0).help(),
+                        Command::AddWord(Word {
+                            word: "word".to_string(),
+                            lang: "en".parse().unwrap(),
+                        })
+                            .help(),
+                        Command::DeleteWord("".to_string()).help(),
+                        Command::Help.help(),
+                    ];
+                    Ok(client::Answer::from_message(
+                        format!("List of commands:\n{}", helps.join("\n")).as_str(),
+                            &message,
+                    ))
+                },
             };
             let answer = match answer_res {
                 Ok(answer) => answer,
