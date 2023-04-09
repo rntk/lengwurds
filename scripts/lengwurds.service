@@ -1,0 +1,9 @@
+[Unit]
+Description=iRun lengwurds at boot time
+EnvironmentFile=/app/tmp/t
+ExecStart=/app/target/release/lengwurds
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
